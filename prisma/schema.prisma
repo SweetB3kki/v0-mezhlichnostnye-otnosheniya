@@ -1,0 +1,82 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Class {
+  id        String    @id @default(cuid())
+  name      String
+  teacher   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  students  Student[]
+  sessions  TestSession[]
+  
+  @@index([name])
+}
+
+model Student {
+  id        String    @id @default(cuid())
+  firstName String
+  lastName  String
+  classId   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  class     Class?    @relation(fields: [classId], references: [id])
+  sessions  TestSession[]
+  
+  @@index([classId])
+  @@index([lastName, firstName])
+}
+
+model TestSession {
+  id          String    @id @default(cuid())
+  studentId   String
+  classId     String?
+  submittedAt DateTime  @default(now())
+  meta        Json?
+  
+  student     Student   @relation(fields: [studentId], references: [id])
+  class       Class?    @relation(fields: [classId], references: [id])
+  responses   Response[]
+  
+  @@index([studentId])
+  @@index([classId])
+  @@index([submittedAt])
+}
+
+model Response {
+  id          String      @id @default(cuid())
+  sessionId   String
+  kind        ResponseKind
+  questionKey String
+  answer      Json
+  
+  session     TestSession @relation(fields: [sessionId], references: [id])
+  
+  @@index([sessionId])
+  @@index([kind])
+}
+
+model QuestionBank {
+  id       String       @id @default(cuid())
+  kind     ResponseKind
+  key      String       @unique
+  text     String
+  meta     Json?
+  isActive Boolean      @default(true)
+  
+  @@index([kind])
+  @@index([isActive])
+}
+
+enum ResponseKind {
+  SOCIOMETRY
+  FIRO
+}

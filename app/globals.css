@@ -1,0 +1,136 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Cloud theme colors */
+  --cloud-purple: #c8b6ff;
+  --cloud-pink: #ffd6e8;
+  --cloud-bg: #fbfbfe;
+  --ink: #2b2140;
+  --ink-secondary: #6c5a8a;
+
+  --background: #fbfbfe;
+  --foreground: #2b2140;
+  --card: #ffffff;
+  --card-foreground: #2b2140;
+  --popover: #ffffff;
+  --popover-foreground: #2b2140;
+  --primary: #c8b6ff;
+  --primary-foreground: #2b2140;
+  --secondary: #ffd6e8;
+  --secondary-foreground: #2b2140;
+  --muted: #f5f3ff;
+  --muted-foreground: #6c5a8a;
+  --accent: #ffd6e8;
+  --accent-foreground: #2b2140;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: #ffffff;
+  --border: #e8e0f0;
+  --input: #e8e0f0;
+  --ring: #c8b6ff;
+  --chart-1: #c8b6ff;
+  --chart-2: #ffd6e8;
+  --chart-3: #a5b4fc;
+  --chart-4: #fde68a;
+  --chart-5: #6ee7b7;
+  --radius: 1rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2b2140;
+  --sidebar-primary: #c8b6ff;
+  --sidebar-primary-foreground: #2b2140;
+  --sidebar-accent: #f5f3ff;
+  --sidebar-accent-foreground: #2b2140;
+  --sidebar-border: #e8e0f0;
+  --sidebar-ring: #c8b6ff;
+}
+
+@theme inline {
+  --font-sans: "Inter", "Inter Fallback", system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Custom cloud colors */
+  --color-cloud-purple: var(--cloud-purple);
+  --color-cloud-pink: var(--cloud-pink);
+  --color-cloud-bg: var(--cloud-bg);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Cloud background blobs */
+.cloud-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.cloud-blob-purple {
+  background: var(--cloud-purple);
+}
+
+.cloud-blob-pink {
+  background: var(--cloud-pink);
+}
+
+/* Cloud shadow for cards */
+.cloud-shadow {
+  box-shadow: 0 4px 20px -4px rgba(200, 182, 255, 0.15), 0 8px 40px -8px rgba(255, 214, 232, 0.1);
+}
+
+/* Gradient button */
+.gradient-btn {
+  background: linear-gradient(135deg, var(--cloud-purple) 0%, var(--cloud-pink) 100%);
+}
+
+.gradient-btn:hover {
+  background: linear-gradient(135deg, #b8a6ef 0%, #ffc6d8 100%);
+}
