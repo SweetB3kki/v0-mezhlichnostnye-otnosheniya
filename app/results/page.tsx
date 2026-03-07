@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { prisma } from "@/lib/prisma";
 import { Users, ChevronRight, BarChart3 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function ResultsPage() {
   const classes = await prisma.class.findMany({
     orderBy: [{ name: "asc" }],
@@ -47,4 +49,3 @@ export default async function ResultsPage() {
     </AppShell>
   );
 }
-
