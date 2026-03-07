@@ -20,10 +20,10 @@ export default async function TestCompletePage({ searchParams }: Props) {
               <CheckCircle className="w-10 h-10 text-[var(--ink)]" />
             </div>
 
-            <h1 className="text-2xl font-semibold text-[var(--ink)] mb-2">РўРµСЃС‚ Р·Р°РІРµСЂС€С‘РЅ!</h1>
+            <h1 className="text-2xl font-semibold text-[var(--ink)] mb-2">Тест завершён!</h1>
 
             <p className="text-[var(--ink-secondary)] mb-8">
-              РЎРїР°СЃРёР±Рѕ Р·Р° СѓС‡Р°СЃС‚РёРµ РІ РёСЃСЃР»РµРґРѕРІР°РЅРёРё. Р’Р°С€Рё РѕС‚РІРµС‚С‹ СѓСЃРїРµС€РЅРѕ СЃРѕС…СЂР°РЅРµРЅС‹.
+              Спасибо за участие в исследовании. Ваши ответы успешно сохранены.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -34,7 +34,7 @@ export default async function TestCompletePage({ searchParams }: Props) {
                     className="rounded-xl border-[var(--border)] w-full sm:w-auto bg-transparent"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
-                    Р’РµСЂРЅСѓС‚СЊСЃСЏ Рє РєР»Р°СЃСЃСѓ
+                    Вернуться к классу
                   </Button>
                 </Link>
               )}

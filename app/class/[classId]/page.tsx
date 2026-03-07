@@ -35,10 +35,10 @@ export default async function ClassPage({ params }: Props) {
           <Link href="/class">
             <Button variant="ghost" className="mb-4 text-[var(--ink-secondary)] hover:text-[var(--ink)]">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Р’СЃРµ РєР»Р°СЃСЃС‹
+              Все классы
             </Button>
           </Link>
-          <PageTitle title="РљР»Р°СЃСЃ РЅРµ РЅР°Р№РґРµРЅ" />
+          <PageTitle title="Класс не найден" />
         </div>
       </AppShell>
     );
@@ -50,14 +50,14 @@ export default async function ClassPage({ params }: Props) {
         <Link href="/class">
           <Button variant="ghost" className="mb-4 text-[var(--ink-secondary)] hover:text-[var(--ink)]">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Р’СЃРµ РєР»Р°СЃСЃС‹
+            Все классы
           </Button>
         </Link>
 
         <div className="mb-8">
           <PageTitle
-            title={`РљР»Р°СЃСЃ ${cls.name}`}
-            subtitle={cls.teacher ? `РљР»Р°СЃСЃРЅС‹Р№ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЊ: ${cls.teacher}` : undefined}
+            title={`Класс ${cls.name}`}
+            subtitle={cls.teacher ? `Классный руководитель: ${cls.teacher}` : undefined}
           />
         </div>
 

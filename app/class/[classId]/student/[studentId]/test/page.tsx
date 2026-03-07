@@ -103,6 +103,11 @@ export default function TestPage() {
     )
   }, [sociometryAnswers, firoAnswers, currentStep, classId, studentId])
 
+  // Ensure each step starts from the top of the page.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  }, [currentStep])
+
   const handleSubmit = async () => {
     if (isSubmitting) return
     setIsSubmitting(true)
