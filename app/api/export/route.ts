@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 
 type ExportRow = {
   studentId: string;
@@ -21,6 +22,10 @@ function csvEscape(value: string | number | null): string {
 }
 
 export async function GET(request: NextRequest) {
+  if (!isAdminAuthenticated(request.cookies)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const classId = searchParams.get("classId");
   const format = searchParams.get("format") ?? "csv";
@@ -129,4 +134,3 @@ export async function GET(request: NextRequest) {
     },
   });
 }
-

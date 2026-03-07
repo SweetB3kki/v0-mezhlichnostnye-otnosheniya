@@ -1,9 +1,9 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { PageTitle } from "@/components/page-title";
 import { Button } from "@/components/ui/button";
 import { StudentCard } from "@/components/student-card";
-import { ArrowLeft, BarChart3 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -35,10 +35,10 @@ export default async function ClassPage({ params }: Props) {
           <Link href="/class">
             <Button variant="ghost" className="mb-4 text-[var(--ink-secondary)] hover:text-[var(--ink)]">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Все классы
+              Р’СЃРµ РєР»Р°СЃСЃС‹
             </Button>
           </Link>
-          <PageTitle title="Класс не найден" />
+          <PageTitle title="РљР»Р°СЃСЃ РЅРµ РЅР°Р№РґРµРЅ" />
         </div>
       </AppShell>
     );
@@ -50,22 +50,15 @@ export default async function ClassPage({ params }: Props) {
         <Link href="/class">
           <Button variant="ghost" className="mb-4 text-[var(--ink-secondary)] hover:text-[var(--ink)]">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Все классы
+            Р’СЃРµ РєР»Р°СЃСЃС‹
           </Button>
         </Link>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="mb-8">
           <PageTitle
-            title={`Класс ${cls.name}`}
-            subtitle={cls.teacher ? `Классный руководитель: ${cls.teacher}` : undefined}
+            title={`РљР»Р°СЃСЃ ${cls.name}`}
+            subtitle={cls.teacher ? `РљР»Р°СЃСЃРЅС‹Р№ СЂСѓРєРѕРІРѕРґРёС‚РµР»СЊ: ${cls.teacher}` : undefined}
           />
-
-          <Link href={`/results/class/${classId}`}>
-            <Button className="gradient-btn text-[var(--ink)] rounded-xl">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Результаты класса
-            </Button>
-          </Link>
         </div>
 
         <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -81,3 +74,4 @@ export default async function ClassPage({ params }: Props) {
     </AppShell>
   );
 }
+

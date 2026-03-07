@@ -1,13 +1,18 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateSociometryMetrics } from "@/lib/sociometry";
 import type { StudentResultsApiResponse } from "@/lib/results-types";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 
 type RouteContext = {
   params: { studentId: string } | Promise<{ studentId: string }>;
 };
 
-export async function GET(_req: Request, ctx: RouteContext) {
+export async function GET(req: NextRequest, ctx: RouteContext) {
+  if (!isAdminAuthenticated(req.cookies)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { studentId } = await Promise.resolve(ctx.params);
 
   const student = await prisma.student.findUnique({
@@ -159,4 +164,3 @@ export async function GET(_req: Request, ctx: RouteContext) {
 
   return NextResponse.json(payload);
 }
-

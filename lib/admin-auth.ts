@@ -29,3 +29,12 @@ export function isValidAdminSessionToken(token: string | undefined): boolean {
   if (left.length !== right.length) return false;
   return timingSafeEqual(left, right);
 }
+
+type CookieStoreLike = {
+  get(name: string): { value: string } | undefined;
+};
+
+export function isAdminAuthenticated(cookieStore: CookieStoreLike): boolean {
+  const token = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  return isValidAdminSessionToken(token);
+}
