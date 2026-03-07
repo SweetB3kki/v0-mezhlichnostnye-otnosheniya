@@ -64,18 +64,6 @@ model Response {
   @@index([kind])
 }
 
-model QuestionBank {
-  id       String       @id @default(cuid())
-  kind     ResponseKind
-  key      String       @unique
-  text     String
-  meta     Json?
-  isActive Boolean      @default(true)
-  
-  @@index([kind])
-  @@index([isActive])
-}
-
 enum ResponseKind {
   SOCIOMETRY
   FIRO

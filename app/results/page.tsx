@@ -1,18 +1,27 @@
-import Link from "next/link"
-import { AppShell } from "@/components/app-shell"
-import { PageTitle } from "@/components/page-title"
-import { Card, CardContent } from "@/components/ui/card"
-import { demoClasses } from "@/lib/demo-data"
-import { Users, ChevronRight, BarChart3 } from "lucide-react"
+import Link from "next/link";
+import { AppShell } from "@/components/app-shell";
+import { PageTitle } from "@/components/page-title";
+import { Card, CardContent } from "@/components/ui/card";
+import { prisma } from "@/lib/prisma";
+import { Users, ChevronRight, BarChart3 } from "lucide-react";
 
-export default function ResultsPage() {
+export default async function ResultsPage() {
+  const classes = await prisma.class.findMany({
+    orderBy: [{ name: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      _count: { select: { students: true } },
+    },
+  });
+
   return (
     <AppShell>
       <div className="max-w-[1000px] mx-auto px-6 py-12">
         <PageTitle title="Результаты" subtitle="Выберите класс для просмотра результатов" />
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {demoClasses.map((classItem) => (
+          {classes.map((classItem) => (
             <Link key={classItem.id} href={`/results/class/${classItem.id}`}>
               <Card className="cloud-shadow border-0 bg-white/90 backdrop-blur-sm hover:bg-white transition-colors cursor-pointer group h-full">
                 <CardContent className="p-6">
@@ -27,7 +36,7 @@ export default function ResultsPage() {
 
                   <div className="flex items-center gap-1 text-xs text-[var(--ink-secondary)]">
                     <Users className="w-3 h-3" />
-                    <span>{classItem.studentCount} учащихся</span>
+                    <span>{classItem._count.students} учащихся</span>
                   </div>
                 </CardContent>
               </Card>
@@ -36,5 +45,6 @@ export default function ResultsPage() {
         </div>
       </div>
     </AppShell>
-  )
+  );
 }
+

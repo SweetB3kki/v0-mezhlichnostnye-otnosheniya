@@ -1,35 +1,84 @@
 "use client"
 
-import { useState, useEffect, use } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { TestStepper } from "@/components/test-stepper"
 import { SociometryTest } from "@/components/sociometry-test"
 import { FiroTest } from "@/components/firo-test"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { getClassById, getStudentById, getStudentsForClass } from "@/lib/demo-data"
 import { submitTest } from "@/lib/api"
 import { ArrowLeft, User, Users } from "lucide-react"
 import Link from "next/link"
 
-interface Props {
-  params: Promise<{ classId: string; studentId: string }>
-}
+type ApiClass = { id: string; name: string; teacher?: string | null }
+type ApiStudent = { id: string; firstName: string; lastName: string; classId?: string | null }
+type ParticipantsWithClassPayload = { class: ApiClass; students: ApiStudent[] }
 
-export default function TestPage({ params }: Props) {
-  const { classId, studentId } = use(params)
+export default function TestPage() {
+  const routeParams = useParams<{ classId: string; studentId: string }>()
+  const classId = Array.isArray(routeParams.classId) ? routeParams.classId[0] : routeParams.classId
+  const studentId = Array.isArray(routeParams.studentId) ? routeParams.studentId[0] : routeParams.studentId
   const router = useRouter()
 
-  const classData = getClassById(classId)
-  const student = getStudentById(classId, studentId)
-  const classmates = getStudentsForClass(classId).filter((s) => s.id !== studentId)
+  const [classData, setClassData] = useState<ApiClass | null>(null)
+  const [student, setStudent] = useState<ApiStudent | null>(null)
+  const [classmates, setClassmates] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const [currentStep, setCurrentStep] = useState(0)
   const [sociometryAnswers, setSociometryAnswers] = useState<Record<string, string[]>>({})
   const [firoAnswers, setFiroAnswers] = useState<Record<string, number>>({})
   const [startTime] = useState(new Date().toISOString())
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Load class + students from API (DB)
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      setLoading(true)
+      setLoadError(null)
+
+      try {
+        const contextRes = await fetch(`/api/groups/${classId}/participants?withClass=1`, { cache: "no-store" })
+
+        if (!contextRes.ok) throw new Error(`Failed to load test context (HTTP ${contextRes.status})`)
+
+        const payload = (await contextRes.json()) as ParticipantsWithClassPayload
+        if (!payload || !payload.class || !Array.isArray(payload.students)) {
+          throw new Error("Invalid test context response")
+        }
+        const students = payload.students
+        const c = payload.class
+        const s = students.find((x) => x.id === studentId) ?? null
+
+        if (!s) throw new Error("Student not found in DB")
+
+        if (cancelled) return
+
+        setClassData(c)
+        setStudent(s)
+        setClassmates(
+          students
+            .filter((x) => x.id !== studentId)
+            .map((x) => ({ id: x.id, firstName: x.firstName, lastName: x.lastName }))
+        )
+      } catch (e) {
+        if (cancelled) return
+        setLoadError(e instanceof Error ? e.message : "Load error")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [classId, studentId])
 
   // Load saved progress
   useEffect(() => {
@@ -40,10 +89,8 @@ export default function TestPage({ params }: Props) {
         const data = JSON.parse(saved)
         if (data.sociometryAnswers) setSociometryAnswers(data.sociometryAnswers)
         if (data.firoAnswers) setFiroAnswers(data.firoAnswers)
-        if (data.currentStep) setCurrentStep(data.currentStep)
-      } catch {
-        // Ignore parse errors
-      }
+        if (typeof data.currentStep === "number") setCurrentStep(data.currentStep)
+      } catch {}
     }
   }, [classId, studentId])
 
@@ -52,53 +99,45 @@ export default function TestPage({ params }: Props) {
     const storageKey = `test_progress_${classId}_${studentId}`
     localStorage.setItem(
       storageKey,
-      JSON.stringify({
-        sociometryAnswers,
-        firoAnswers,
-        currentStep,
-      }),
+      JSON.stringify({ sociometryAnswers, firoAnswers, currentStep })
     )
   }, [sociometryAnswers, firoAnswers, currentStep, classId, studentId])
 
   const handleSubmit = async () => {
+    if (isSubmitting) return
     setIsSubmitting(true)
 
     const endTime = new Date()
     const startDate = new Date(startTime)
     const durationSeconds = Math.floor((endTime.getTime() - startDate.getTime()) / 1000)
 
-    // Prepare sociometry responses
-    const sociometryResponses = Object.entries(sociometryAnswers).map(([questionId, answer]) => ({
-      questionId,
-      answer,
-    }))
-
-    // Prepare FIRO responses
-    const firoResponses = Object.entries(firoAnswers).map(([questionId, answer]) => ({
-      questionId,
-      answer,
-    }))
-
     const payload = {
       studentId,
       classId,
-      responses: [...sociometryResponses, ...firoResponses],
-      meta: {
-        durationSeconds,
-        startedAt: startTime,
-      },
       type: "COMBINED" as const,
+      meta: { durationSeconds, startedAt: startTime },
+      responses: [
+        ...Object.entries(sociometryAnswers).map(([key, answer]) => ({
+          kind: "SOCIOMETRY" as const,
+          key,
+          answer,
+        })),
+        ...Object.entries(firoAnswers).map(([key, answer]) => ({
+          kind: "FIRO" as const,
+          key,
+          answer,
+        })),
+      ],
     }
 
     const result = await submitTest(payload)
 
     if (result.success) {
-      // Clear saved progress
       localStorage.removeItem(`test_progress_${classId}_${studentId}`)
       router.push(`/test/complete?classId=${classId}&studentId=${studentId}`)
     } else {
       setIsSubmitting(false)
-      alert("Ошибка при отправке. Попробуйте ещё раз.")
+      alert(result.error || "Ошибка при отправке. Попробуйте ещё раз.")
     }
   }
 
@@ -107,10 +146,31 @@ export default function TestPage({ params }: Props) {
     { id: "firo", label: "ОМО/FIRO" },
   ]
 
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="max-w-[900px] mx-auto px-6 py-12 text-[var(--ink-secondary)]">Загрузка…</div>
+      </AppShell>
+    )
+  }
+
+  if (loadError || !classData || !student) {
+    return (
+      <AppShell>
+        <div className="max-w-[900px] mx-auto px-6 py-12">
+          <div className="text-[var(--ink)] font-semibold mb-2">Ошибка загрузки данных</div>
+          <div className="text-[var(--ink-secondary)] mb-6">{loadError || "Unknown error"}</div>
+          <Link href={`/class/${classId}`}>
+            <Button variant="outline">Назад</Button>
+          </Link>
+        </div>
+      </AppShell>
+    )
+  }
+
   return (
     <AppShell>
       <div className="max-w-[900px] mx-auto px-6 py-8">
-        {/* Header */}
         <div className="mb-6">
           <Link href={`/class/${classId}`}>
             <Button variant="ghost" size="sm" className="text-[var(--ink-secondary)] hover:text-[var(--ink)] mb-2">
@@ -126,7 +186,7 @@ export default function TestPage({ params }: Props) {
                   <div className="w-8 h-8 rounded-lg bg-[var(--cloud-purple)]/20 flex items-center justify-center">
                     <Users className="w-4 h-4 text-[var(--ink)]" />
                   </div>
-                  <span className="text-sm text-[var(--ink)]">Класс {classData?.name || classId.toUpperCase()}</span>
+                  <span className="text-sm text-[var(--ink)]">Класс {classData.name}</span>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -134,7 +194,7 @@ export default function TestPage({ params }: Props) {
                     <User className="w-4 h-4 text-[var(--ink)]" />
                   </div>
                   <span className="text-sm text-[var(--ink)]">
-                    {student?.lastName} {student?.firstName}
+                    {student.lastName} {student.firstName}
                   </span>
                 </div>
               </div>
@@ -142,10 +202,8 @@ export default function TestPage({ params }: Props) {
           </Card>
         </div>
 
-        {/* Stepper */}
         <TestStepper steps={steps} currentStep={currentStep} />
 
-        {/* Test Content */}
         <div className="mt-6">
           {currentStep === 0 && (
             <SociometryTest

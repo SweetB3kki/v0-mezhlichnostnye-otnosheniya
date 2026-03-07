@@ -1,98 +1,132 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getStudentsForClass, demoClasses } from "@/lib/demo-data"
+import { type NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+type ExportRow = {
+  studentId: string;
+  firstName: string;
+  lastName: string;
+  classId: string | null;
+  className: string | null;
+  submittedAt: string | null;
+  sociometryResponses: number;
+  firoResponses: number;
+  firoSum: number;
+  firoAvg: number;
+};
+
+function csvEscape(value: string | number | null): string {
+  const text = value == null ? "" : String(value);
+  if (!/[",\n]/.test(text)) return text;
+  return `"${text.replace(/"/g, '""')}"`;
+}
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const classId = searchParams.get("classId")
-  const format = searchParams.get("format") || "csv"
+  const searchParams = request.nextUrl.searchParams;
+  const classId = searchParams.get("classId");
+  const format = searchParams.get("format") ?? "csv";
 
-  // Demo data - in production this would come from database
-  let students: Array<{ id: string; firstName: string; lastName: string; classId?: string }> = []
-
-  if (classId === "all") {
-    demoClasses.forEach((cls) => {
-      const classStudents = getStudentsForClass(cls.id).map((s) => ({
-        ...s,
-        classId: cls.id,
-      }))
-      students = [...students, ...classStudents]
-    })
-  } else if (classId) {
-    students = getStudentsForClass(classId).map((s) => ({
-      ...s,
-      classId,
-    }))
+  if (!classId) {
+    return NextResponse.json({ error: "classId is required" }, { status: 400 });
   }
 
-  // Generate demo results
-  const results = students.map((student) => ({
-    studentId: student.id,
-    firstName: student.firstName,
-    lastName: student.lastName,
-    classId: student.classId,
-    sociometry: {
-      status: ["Звезда", "Предпочитаемый", "Пренебрегаемый", "Изолированный"][Math.floor(Math.random() * 4)],
-      choices: Math.floor(Math.random() * 8),
-      mutual: Math.floor(Math.random() * 4),
+  const where = classId === "all" ? {} : { classId };
+  const students = await prisma.student.findMany({
+    where,
+    orderBy: [{ classId: "asc" }, { lastName: "asc" }, { firstName: "asc" }],
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      classId: true,
+      class: { select: { name: true } },
+      sessions: {
+        orderBy: { submittedAt: "desc" },
+        take: 1,
+        select: {
+          submittedAt: true,
+          responses: {
+            select: {
+              kind: true,
+              answer: true,
+            },
+          },
+        },
+      },
     },
-    firo: {
-      Ie: Math.floor(Math.random() * 9),
-      Iw: Math.floor(Math.random() * 9),
-      Ce: Math.floor(Math.random() * 9),
-      Cw: Math.floor(Math.random() * 9),
-      Ae: Math.floor(Math.random() * 9),
-      Aw: Math.floor(Math.random() * 9),
-    },
-  }))
+  });
+
+  const rows: ExportRow[] = students.map((student) => {
+    const latestSession = student.sessions[0] ?? null;
+    const responses = latestSession?.responses ?? [];
+    const sociometryResponses = responses.filter((response) => response.kind === "SOCIOMETRY").length;
+    const firoValues = responses
+      .filter((response) => response.kind === "FIRO")
+      .map((response) => {
+        const value = typeof response.answer === "number" ? response.answer : Number(response.answer);
+        return Number.isFinite(value) ? value : 0;
+      });
+
+    const firoSum = firoValues.reduce((sum, value) => sum + value, 0);
+    const firoCount = firoValues.length;
+
+    return {
+      studentId: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      classId: student.classId ?? null,
+      className: student.class?.name ?? null,
+      submittedAt: latestSession ? latestSession.submittedAt.toISOString() : null,
+      sociometryResponses,
+      firoResponses: firoCount,
+      firoSum,
+      firoAvg: firoCount === 0 ? 0 : firoSum / firoCount,
+    };
+  });
 
   if (format === "json") {
-    return NextResponse.json(results)
+    return NextResponse.json(rows);
   }
 
-  // CSV format
   const headers = [
     "studentId",
     "firstName",
     "lastName",
     "classId",
-    "sociometry_status",
-    "sociometry_choices",
-    "sociometry_mutual",
-    "Ie",
-    "Iw",
-    "Ce",
-    "Cw",
-    "Ae",
-    "Aw",
-  ]
+    "className",
+    "submittedAt",
+    "sociometryResponses",
+    "firoResponses",
+    "firoSum",
+    "firoAvg",
+  ];
 
   const csvRows = [
     headers.join(","),
-    ...results.map((r) =>
+    ...rows.map((row) =>
       [
-        r.studentId,
-        r.firstName,
-        r.lastName,
-        r.classId,
-        r.sociometry.status,
-        r.sociometry.choices,
-        r.sociometry.mutual,
-        r.firo.Ie,
-        r.firo.Iw,
-        r.firo.Ce,
-        r.firo.Cw,
-        r.firo.Ae,
-        r.firo.Aw,
-      ].join(","),
+        row.studentId,
+        row.firstName,
+        row.lastName,
+        row.classId,
+        row.className,
+        row.submittedAt,
+        row.sociometryResponses,
+        row.firoResponses,
+        row.firoSum,
+        row.firoAvg.toFixed(2),
+      ]
+        .map(csvEscape)
+        .join(","),
     ),
-  ]
+  ];
 
-  const csv = csvRows.join("\n")
+  const csv = csvRows.join("\n");
 
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv",
       "Content-Disposition": `attachment; filename=results_${classId}.csv`,
     },
-  })
+  });
 }
+
