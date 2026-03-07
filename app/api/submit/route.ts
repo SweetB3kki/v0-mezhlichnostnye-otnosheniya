@@ -16,9 +16,9 @@ type IncomingPayload = {
   responses: IncomingResponse[];
 };
 
-function extractStartedAt(meta: IncomingPayload["meta"]): string | null {
+function extractStartedAt(meta: unknown): string | null {
   if (!meta || typeof meta !== "object") return null;
-  const startedAt = meta.startedAt;
+  const startedAt = (meta as { startedAt?: unknown }).startedAt;
   return typeof startedAt === "string" && startedAt.trim().length > 0 ? startedAt : null;
 }
 
@@ -99,22 +99,18 @@ export async function POST(req: Request) {
 
     const sessionId = await prisma.$transaction(
       async (tx) => {
-        if (startedAt) {
-          const existing = await tx.testSession.findFirst({
-            where: {
-              studentId: body.studentId,
-              meta: {
-                path: ["startedAt"],
-                equals: startedAt,
-              },
-            },
-            orderBy: { submittedAt: "desc" },
-            select: { id: true },
-          });
+        const existingSubmission = await tx.testSession.findFirst({
+          where: { studentId: body.studentId },
+          orderBy: { submittedAt: "desc" },
+          select: { id: true, meta: true },
+        });
 
-          if (existing) {
-            return existing.id;
+        if (existingSubmission) {
+          const existingStartedAt = extractStartedAt(existingSubmission.meta);
+          if (startedAt && existingStartedAt === startedAt) {
+            return existingSubmission.id;
           }
+          throw new Error("Test already submitted");
         }
 
         const session = await tx.testSession.create({
@@ -146,7 +142,8 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error(error);
     const message = error instanceof Error ? error.message : "Internal server error";
-    const status = message.startsWith("Invalid") ? 400 : 500;
+    const status =
+      message === "Test already submitted" ? 409 : message.startsWith("Invalid") ? 400 : 500;
     return NextResponse.json(
       { error: message },
       { status },

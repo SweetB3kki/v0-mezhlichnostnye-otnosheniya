@@ -13,7 +13,7 @@ import { ArrowLeft, User, Users } from "lucide-react"
 import Link from "next/link"
 
 type ApiClass = { id: string; name: string; teacher?: string | null }
-type ApiStudent = { id: string; firstName: string; lastName: string; classId?: string | null }
+type ApiStudent = { id: string; firstName: string; lastName: string; classId?: string | null; hasCompleted?: boolean }
 type ParticipantsWithClassPayload = { class: ApiClass; students: ApiStudent[] }
 
 export default function TestPage() {
@@ -25,6 +25,7 @@ export default function TestPage() {
   const [classData, setClassData] = useState<ApiClass | null>(null)
   const [student, setStudent] = useState<ApiStudent | null>(null)
   const [classmates, setClassmates] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
+  const [alreadyCompleted, setAlreadyCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -61,6 +62,7 @@ export default function TestPage() {
 
         setClassData(c)
         setStudent(s)
+        setAlreadyCompleted(Boolean(s.hasCompleted))
         setClassmates(
           students
             .filter((x) => x.id !== studentId)
@@ -141,6 +143,9 @@ export default function TestPage() {
       localStorage.removeItem(`test_progress_${classId}_${studentId}`)
       router.push(`/test/complete?classId=${classId}&studentId=${studentId}`)
     } else {
+      if (result.error === "Test already submitted") {
+        setAlreadyCompleted(true)
+      }
       setIsSubmitting(false)
       alert(result.error || "Ошибка при отправке. Попробуйте ещё раз.")
     }
@@ -168,6 +173,28 @@ export default function TestPage() {
           <Link href={`/class/${classId}`}>
             <Button variant="outline">Назад</Button>
           </Link>
+        </div>
+      </AppShell>
+    )
+  }
+
+  if (alreadyCompleted) {
+    return (
+      <AppShell>
+        <div className="max-w-[900px] mx-auto px-6 py-12">
+          <Card className="cloud-shadow border-0 bg-white/90 backdrop-blur-sm">
+            <CardContent className="p-6 space-y-3">
+              <div className="text-[var(--ink)] font-semibold">Тест уже пройден</div>
+              <div className="text-[var(--ink-secondary)]">
+                Повторное прохождение для этого ученика заблокировано, чтобы сохранить корректность результатов.
+              </div>
+              <Link href={`/class/${classId}`}>
+                <Button variant="outline" className="rounded-xl border-[var(--border)] bg-transparent mt-2">
+                  Вернуться к классу
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </AppShell>
     )

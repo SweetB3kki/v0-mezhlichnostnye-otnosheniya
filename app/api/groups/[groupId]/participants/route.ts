@@ -11,7 +11,17 @@ export async function GET(
   const studentsPromise = prisma.student.findMany({
     where: { classId: groupId },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    select: { id: true, firstName: true, lastName: true, classId: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      classId: true,
+      sessions: {
+        orderBy: { submittedAt: "desc" },
+        take: 1,
+        select: { id: true },
+      },
+    },
   });
 
   if (withClass) {
@@ -27,12 +37,29 @@ export async function GET(
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ class: group, students });
+    return NextResponse.json({
+      class: group,
+      students: students.map((student) => ({
+        id: student.id,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        classId: student.classId,
+        hasCompleted: student.sessions.length > 0,
+      })),
+    });
   }
 
   const students = await studentsPromise;
 
-  return NextResponse.json(students);
+  return NextResponse.json(
+    students.map((student) => ({
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      classId: student.classId,
+      hasCompleted: student.sessions.length > 0,
+    })),
+  );
 }
 
 export async function POST(

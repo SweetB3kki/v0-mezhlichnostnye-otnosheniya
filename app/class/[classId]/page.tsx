@@ -23,7 +23,16 @@ export default async function ClassPage({ params }: Props) {
       teacher: true,
       students: {
         orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-        select: { id: true, firstName: true, lastName: true },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          sessions: {
+            orderBy: { submittedAt: "desc" },
+            take: 1,
+            select: { id: true },
+          },
+        },
       },
     },
   });
@@ -65,7 +74,12 @@ export default async function ClassPage({ params }: Props) {
           {cls.students.map((student) => (
             <StudentCard
               key={student.id}
-              student={{ id: student.id, firstName: student.firstName, lastName: student.lastName }}
+              student={{
+                id: student.id,
+                firstName: student.firstName,
+                lastName: student.lastName,
+                hasCompleted: student.sessions.length > 0,
+              }}
               classId={classId}
             />
           ))}

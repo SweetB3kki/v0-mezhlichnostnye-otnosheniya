@@ -1,13 +1,14 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { User, Play } from "lucide-react"
+import { User, Play, CheckCircle2 } from "lucide-react"
 
 interface StudentCardProps {
   student: {
     id: string
     firstName: string
     lastName: string
+    hasCompleted?: boolean
   }
   classId: string
 }
@@ -26,12 +27,23 @@ export function StudentCard({ student, classId }: StudentCardProps) {
           </div>
         </div>
 
-        <Link href={`/class/${classId}/student/${student.id}/test`}>
-          <Button size="sm" className="w-full gradient-btn text-[var(--ink)] rounded-lg text-xs">
-            <Play className="w-3 h-3 mr-1" />
-            Пройти тест
+        {student.hasCompleted ? (
+          <Button
+            size="sm"
+            disabled
+            className="w-full rounded-lg text-xs bg-red-100 text-red-700 border border-red-200 hover:bg-red-100"
+          >
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Пройдено
           </Button>
-        </Link>
+        ) : (
+          <Link href={`/class/${classId}/student/${student.id}/test`}>
+            <Button size="sm" className="w-full gradient-btn text-[var(--ink)] rounded-lg text-xs">
+              <Play className="w-3 h-3 mr-1" />
+              Пройти тест
+            </Button>
+          </Link>
+        )}
       </CardContent>
     </Card>
   )
