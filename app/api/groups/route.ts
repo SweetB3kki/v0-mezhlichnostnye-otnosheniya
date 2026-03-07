@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 
 export async function GET() {
   const classes = await prisma.class.findMany({
@@ -16,7 +17,11 @@ export async function GET() {
   return NextResponse.json(classes);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  if (!isAdminAuthenticated(req.cookies)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => null);
 
   const name = typeof body?.name === "string" ? body.name.trim() : "";

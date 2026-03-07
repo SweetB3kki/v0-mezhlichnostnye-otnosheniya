@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 
 export async function GET(
   req: Request,
@@ -63,9 +64,13 @@ export async function GET(
 }
 
 export async function POST(
-  req: Request,
+  req: NextRequest,
   ctx: { params: { groupId: string } | Promise<{ groupId: string }> }
 ) {
+  if (!isAdminAuthenticated(req.cookies)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { groupId } = await Promise.resolve(ctx.params);
   const body = await req.json().catch(() => null);
 
