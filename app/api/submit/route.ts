@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { Prisma, ResponseKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 
 type IncomingResponse = {
   kind: ResponseKind;
@@ -57,8 +58,9 @@ function normalizeResponse(response: IncomingResponse): {
   throw new Error(`Invalid response kind for ${response.key}`);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    const isAdmin = isAdminAuthenticated(req.cookies);
     const body = (await req.json()) as IncomingPayload;
 
     if (!body?.studentId || !Array.isArray(body.responses)) {
@@ -99,18 +101,29 @@ export async function POST(req: Request) {
 
     const sessionId = await prisma.$transaction(
       async (tx) => {
-        const existingSubmission = await tx.testSession.findFirst({
-          where: { studentId: body.studentId },
-          orderBy: { submittedAt: "desc" },
-          select: { id: true, meta: true },
-        });
+        if (startedAt) {
+          const sameAttempt = await tx.testSession.findFirst({
+            where: {
+              studentId: body.studentId,
+              meta: {
+                path: ["startedAt"],
+                equals: startedAt,
+              },
+            },
+            orderBy: { submittedAt: "desc" },
+            select: { id: true },
+          });
+          if (sameAttempt) return sameAttempt.id;
+        }
 
-        if (existingSubmission) {
-          const existingStartedAt = extractStartedAt(existingSubmission.meta);
-          if (startedAt && existingStartedAt === startedAt) {
-            return existingSubmission.id;
+        if (!isAdmin) {
+          const existingSubmission = await tx.testSession.findFirst({
+            where: { studentId: body.studentId },
+            select: { id: true },
+          });
+          if (existingSubmission) {
+            throw new Error("Test already submitted");
           }
-          throw new Error("Test already submitted");
         }
 
         const session = await tx.testSession.create({

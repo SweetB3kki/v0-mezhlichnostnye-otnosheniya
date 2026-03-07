@@ -15,6 +15,7 @@ import Link from "next/link"
 type ApiClass = { id: string; name: string; teacher?: string | null }
 type ApiStudent = { id: string; firstName: string; lastName: string; classId?: string | null; hasCompleted?: boolean }
 type ParticipantsWithClassPayload = { class: ApiClass; students: ApiStudent[] }
+type AuthPayload = { authenticated?: boolean }
 
 export default function TestPage() {
   const routeParams = useParams<{ classId: string; studentId: string }>()
@@ -25,6 +26,7 @@ export default function TestPage() {
   const [classData, setClassData] = useState<ApiClass | null>(null)
   const [student, setStudent] = useState<ApiStudent | null>(null)
   const [classmates, setClassmates] = useState<Array<{ id: string; firstName: string; lastName: string }>>([])
+  const [isAdminUser, setIsAdminUser] = useState(false)
   const [alreadyCompleted, setAlreadyCompleted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -44,11 +46,17 @@ export default function TestPage() {
       setLoadError(null)
 
       try {
-        const contextRes = await fetch(`/api/groups/${classId}/participants?withClass=1`, { cache: "no-store" })
+        const [contextRes, authRes] = await Promise.all([
+          fetch(`/api/groups/${classId}/participants?withClass=1`, { cache: "no-store" }),
+          fetch("/api/admin/auth", { cache: "no-store" }),
+        ])
 
         if (!contextRes.ok) throw new Error(`Failed to load test context (HTTP ${contextRes.status})`)
+        if (!authRes.ok) throw new Error(`Failed to check auth (HTTP ${authRes.status})`)
 
         const payload = (await contextRes.json()) as ParticipantsWithClassPayload
+        const authPayload = (await authRes.json()) as AuthPayload
+        const adminAuthenticated = Boolean(authPayload.authenticated)
         if (!payload || !payload.class || !Array.isArray(payload.students)) {
           throw new Error("Invalid test context response")
         }
@@ -62,7 +70,8 @@ export default function TestPage() {
 
         setClassData(c)
         setStudent(s)
-        setAlreadyCompleted(Boolean(s.hasCompleted))
+        setIsAdminUser(adminAuthenticated)
+        setAlreadyCompleted(Boolean(s.hasCompleted) && !adminAuthenticated)
         setClassmates(
           students
             .filter((x) => x.id !== studentId)
@@ -178,7 +187,7 @@ export default function TestPage() {
     )
   }
 
-  if (alreadyCompleted) {
+  if (alreadyCompleted && !isAdminUser) {
     return (
       <AppShell>
         <div className="max-w-[900px] mx-auto px-6 py-12">

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { StudentCard } from "@/components/student-card";
 import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { isAdminAuthenticated } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,8 @@ interface Props {
 
 export default async function ClassPage({ params }: Props) {
   const { classId } = await Promise.resolve(params);
+  const cookieStore = await cookies();
+  const isAdmin = isAdminAuthenticated(cookieStore);
 
   const cls = await prisma.class.findUnique({
     where: { id: classId },
@@ -81,6 +85,7 @@ export default async function ClassPage({ params }: Props) {
                 hasCompleted: student.sessions.length > 0,
               }}
               classId={classId}
+              canRetake={isAdmin}
             />
           ))}
         </div>

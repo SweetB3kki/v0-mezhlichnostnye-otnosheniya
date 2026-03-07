@@ -11,9 +11,10 @@ interface StudentCardProps {
     hasCompleted?: boolean
   }
   classId: string
+  canRetake?: boolean
 }
 
-export function StudentCard({ student, classId }: StudentCardProps) {
+export function StudentCard({ student, classId, canRetake = false }: StudentCardProps) {
   return (
     <Card className="cloud-shadow border-0 bg-white/90 backdrop-blur-sm hover:bg-white transition-colors">
       <CardContent className="p-4">
@@ -27,11 +28,11 @@ export function StudentCard({ student, classId }: StudentCardProps) {
           </div>
         </div>
 
-        {student.hasCompleted ? (
+        {student.hasCompleted && !canRetake ? (
           <Button
             size="sm"
             disabled
-            className="w-full rounded-lg text-xs bg-red-100 text-red-700 border border-red-200 hover:bg-red-100"
+            className="w-full rounded-lg text-xs bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
           >
             <CheckCircle2 className="w-3 h-3 mr-1" />
             Пройдено
@@ -40,7 +41,7 @@ export function StudentCard({ student, classId }: StudentCardProps) {
           <Link href={`/class/${classId}/student/${student.id}/test`}>
             <Button size="sm" className="w-full gradient-btn text-[var(--ink)] rounded-lg text-xs">
               <Play className="w-3 h-3 mr-1" />
-              Пройти тест
+              {student.hasCompleted ? "Перепройти" : "Пройти тест"}
             </Button>
           </Link>
         )}
