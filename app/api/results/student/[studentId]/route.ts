@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateSociometryMetrics } from "@/lib/sociometry";
+import { calculateFiroProfile } from "@/lib/firo";
 import type { StudentResultsApiResponse } from "@/lib/results-types";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 
@@ -128,9 +129,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     })
     .sort((a, b) => a.questionKey.localeCompare(b.questionKey));
 
-  const firoSum = firoResponses.reduce((sum, item) => sum + item.value, 0);
-  const firoCount = firoResponses.length;
-  const firoAvg = firoCount === 0 ? 0 : firoSum / firoCount;
+  const firoProfile = calculateFiroProfile(firoResponses);
 
   const payload: StudentResultsApiResponse = {
     student: {
@@ -156,9 +155,11 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     },
     firo: {
       responses: firoResponses,
-      sum: firoSum,
-      avg: firoAvg,
-      count: firoCount,
+      sum: firoProfile.sum,
+      avg: firoProfile.avg,
+      count: firoProfile.count,
+      scales: firoProfile.scales,
+      domains: firoProfile.domains,
     },
   };
 

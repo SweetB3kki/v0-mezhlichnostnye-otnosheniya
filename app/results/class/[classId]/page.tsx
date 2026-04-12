@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sociogram } from "@/components/sociogram";
 import type { ClassResultsApiResponse } from "@/lib/results-types";
 import type { SocialStatus } from "@/lib/sociometry";
+import { FIRO_SCALE_ORDER, getFiroLevelLabel, type FiroScoreLevel } from "@/lib/firo";
 import { ArrowLeft } from "lucide-react";
 
 const statusLabel: Record<SocialStatus, string> = {
@@ -27,6 +28,14 @@ const statusStyle: Record<SocialStatus, string> = {
   PREFERRED: "bg-[var(--cloud-pink)] text-[var(--ink)]",
   NEGLECTED: "bg-[var(--cloud-bg)] text-[var(--ink-secondary)]",
   ISOLATED: "bg-gray-100 text-[var(--ink-secondary)]",
+};
+
+const firoLevelStyle: Record<FiroScoreLevel, string> = {
+  EXTREMELY_LOW: "bg-slate-100 text-slate-700",
+  LOW: "bg-blue-100 text-blue-700",
+  BORDERLINE: "bg-amber-100 text-amber-800",
+  HIGH: "bg-emerald-100 text-emerald-700",
+  EXTREMELY_HIGH: "bg-rose-100 text-rose-700",
 };
 
 function formatDate(value: string | null): string {
@@ -70,10 +79,13 @@ export default function ClassResultsPage() {
     };
   }, [classId]);
 
-  const avgFiro = useMemo(() => {
-    if (!data || data.students.length === 0) return 0;
-    const sum = data.students.reduce((acc, student) => acc + student.firoAvg, 0);
-    return sum / data.students.length;
+  const sortedFiroStudents = useMemo(() => {
+    if (!data) return [];
+    return [...data.students].sort((a, b) => {
+      const byLast = a.lastName.localeCompare(b.lastName, "ru");
+      if (byLast !== 0) return byLast;
+      return a.firstName.localeCompare(b.firstName, "ru");
+    });
   }, [data]);
 
   return (
@@ -211,10 +223,10 @@ export default function ClassResultsPage() {
               <TabsContent value="firo" className="space-y-6">
                 <Card className="cloud-shadow border-0 bg-white/90 backdrop-blur-sm">
                   <CardContent className="p-6">
-                    <div className="grid sm:grid-cols-3 gap-4">
+                    <div className="grid sm:grid-cols-3 xl:grid-cols-8 gap-4">
                       <div className="p-4 rounded-xl bg-[var(--cloud-pink)]/20">
-                        <div className="text-2xl font-semibold text-[var(--ink)]">{avgFiro.toFixed(2)}</div>
-                        <div className="text-xs text-[var(--ink-secondary)]">Средний балл класса</div>
+                        <div className="text-2xl font-semibold text-[var(--ink)]">{data.firo.respondentCount}</div>
+                        <div className="text-xs text-[var(--ink-secondary)]">Заполненных профилей</div>
                       </div>
                       <div className="p-4 rounded-xl bg-[var(--cloud-bg)]">
                         <div className="text-2xl font-semibold text-[var(--ink)]">
@@ -226,40 +238,80 @@ export default function ClassResultsPage() {
                         <div className="text-2xl font-semibold text-[var(--ink)]">{data.students.length}</div>
                         <div className="text-xs text-[var(--ink-secondary)]">Учащихся в выборке</div>
                       </div>
+                      {FIRO_SCALE_ORDER.map((scale) => (
+                        <div key={scale} className="p-4 rounded-xl bg-white border border-[var(--border)]">
+                          <div className="text-xs text-[var(--ink-secondary)] mb-1">{scale}</div>
+                          <div className="text-2xl font-semibold text-[var(--ink)]">
+                            {data.firo.scaleAverages[scale].toFixed(2)}
+                          </div>
+                          <div className="text-xs text-[var(--ink-secondary)]">Среднее по шкале</div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="cloud-shadow border-0 bg-white/90 backdrop-blur-sm overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="bg-[var(--cloud-bg)]">
-                            <TableHead>Учащийся</TableHead>
-                            <TableHead className="text-center">FIRO count</TableHead>
-                            <TableHead className="text-center">FIRO sum</TableHead>
-                            <TableHead className="text-center">FIRO avg</TableHead>
-                            <TableHead>Submitted</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {data.students.map((student) => (
-                            <TableRow key={student.id} className="hover:bg-[var(--cloud-bg)]/50">
-                              <TableCell className="font-medium text-[var(--ink)]">
+                <div className="grid lg:grid-cols-2 gap-4">
+                  {sortedFiroStudents.map((student) => (
+                    <Link key={student.id} href={`/student/${student.id}/results`}>
+                      <Card className="cloud-shadow border-0 bg-white/90 backdrop-blur-sm hover:bg-white transition-colors h-full">
+                        <CardContent className="p-5 space-y-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-semibold text-[var(--ink)]">
                                 {student.lastName} {student.firstName}
-                              </TableCell>
-                              <TableCell className="text-center text-[var(--ink-secondary)]">{student.firoCount}</TableCell>
-                              <TableCell className="text-center text-[var(--ink-secondary)]">{student.firoSum}</TableCell>
-                              <TableCell className="text-center text-[var(--ink-secondary)]">{student.firoAvg.toFixed(2)}</TableCell>
-                              <TableCell className="text-[var(--ink-secondary)]">{formatDate(student.submittedAt)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
+                              </div>
+                              <div className="text-sm text-[var(--ink-secondary)]">
+                                {student.firoCount > 0
+                                  ? `Заполнено: ${formatDate(student.submittedAt)}`
+                                  : "ОМО/FIRO не заполнен"}
+                              </div>
+                            </div>
+                            <Badge variant="outline">{student.firoCount} ответов</Badge>
+                          </div>
+
+                          {student.firoCount > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {FIRO_SCALE_ORDER.map((scale) => {
+                                const item = student.firoScales[scale];
+                                return (
+                                  <div key={scale} className="rounded-xl bg-[var(--cloud-bg)] px-3 py-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-sm font-semibold text-[var(--ink)]">{scale}</span>
+                                      <span className="text-lg font-semibold text-[var(--ink)]">{item.score}</span>
+                                    </div>
+                                    <div className="mt-2">
+                                      <Badge className={firoLevelStyle[item.level]}>{getFiroLevelLabel(item.level)}</Badge>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className="rounded-xl bg-[var(--cloud-bg)] px-4 py-5 text-sm text-[var(--ink-secondary)]">
+                              Для этого ученика пока нет заполненного профиля ОМО/FIRO.
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-3 gap-2 text-sm">
+                            <div className="rounded-lg bg-[var(--cloud-pink)]/20 px-3 py-2">
+                              <div className="text-[var(--ink-secondary)]">Сумма</div>
+                              <div className="font-semibold text-[var(--ink)]">{student.firoSum}</div>
+                            </div>
+                            <div className="rounded-lg bg-[var(--cloud-purple)]/10 px-3 py-2">
+                              <div className="text-[var(--ink-secondary)]">Среднее</div>
+                              <div className="font-semibold text-[var(--ink)]">{student.firoAvg.toFixed(2)}</div>
+                            </div>
+                            <div className="rounded-lg bg-[var(--cloud-bg)] px-3 py-2">
+                              <div className="text-[var(--ink-secondary)]">Статус</div>
+                              <div className="font-semibold text-[var(--ink)]">{statusLabel[student.status]}</div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
               </TabsContent>
             </Tabs>
           </>

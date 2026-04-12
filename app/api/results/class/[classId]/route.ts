@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateSociometryMetrics } from "@/lib/sociometry";
+import { calculateFiroProfile, FIRO_SCALE_ORDER } from "@/lib/firo";
 import type { ClassResultsApiResponse } from "@/lib/results-types";
 import { isAdminAuthenticated } from "@/lib/admin-auth";
 
@@ -36,6 +37,7 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
               responses: {
                 select: {
                   kind: true,
+                  questionKey: true,
                   answer: true,
                 },
               },
@@ -75,19 +77,23 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
     const latest = student.sessions[0] ?? null;
     const responses = latest?.responses ?? [];
     let sociometryResponseCount = 0;
-    let firoCount = 0;
-    let firoSum = 0;
+    const firoResponses: Array<{ questionKey: string; value: number }> = [];
     for (const response of responses) {
       if (response.kind === "SOCIOMETRY") {
         sociometryResponseCount += 1;
         continue;
       }
       if (response.kind === "FIRO") {
-        firoCount += 1;
         const num = typeof response.answer === "number" ? response.answer : Number(response.answer);
-        if (Number.isFinite(num)) firoSum += num;
+        if (Number.isFinite(num)) {
+          firoResponses.push({
+            questionKey: response.questionKey,
+            value: num,
+          });
+        }
       }
     }
+    const firoProfile = calculateFiroProfile(firoResponses);
 
     return {
       id: student.id,
@@ -95,16 +101,38 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
       lastName: student.lastName,
       submittedAt: latest ? latest.submittedAt.toISOString() : null,
       sociometryResponseCount,
-      firoResponseCount: firoCount,
+      firoResponseCount: firoProfile.count,
       inDegree: sociometry.inDegree[student.id] ?? 0,
       outDegree: sociometry.outDegree[student.id] ?? 0,
       mutualChoices: sociometry.mutualChoicesByStudent[student.id] ?? 0,
       status: sociometry.statusByStudent[student.id],
-      firoSum,
-      firoAvg: firoCount === 0 ? 0 : firoSum / firoCount,
-      firoCount,
+      firoSum: firoProfile.sum,
+      firoAvg: firoProfile.avg,
+      firoCount: firoProfile.count,
+      firoScales: {
+        Ie: { score: firoProfile.scales.Ie.score, level: firoProfile.scales.Ie.level },
+        Iw: { score: firoProfile.scales.Iw.score, level: firoProfile.scales.Iw.level },
+        Ce: { score: firoProfile.scales.Ce.score, level: firoProfile.scales.Ce.level },
+        Cw: { score: firoProfile.scales.Cw.score, level: firoProfile.scales.Cw.level },
+        Ae: { score: firoProfile.scales.Ae.score, level: firoProfile.scales.Ae.level },
+        Aw: { score: firoProfile.scales.Aw.score, level: firoProfile.scales.Aw.level },
+      },
     };
   });
+
+  const respondentStudents = students.filter((student) => student.firoCount > 0);
+  const respondentCount = respondentStudents.length;
+  const scaleAverages = FIRO_SCALE_ORDER.reduce(
+    (acc, scale) => {
+      acc[scale] =
+        respondentCount === 0
+          ? 0
+          : respondentStudents.reduce((sum, student) => sum + student.firoScales[scale].score, 0) /
+            respondentCount;
+      return acc;
+    },
+    {} as Record<(typeof FIRO_SCALE_ORDER)[number], number>,
+  );
 
   const payload: ClassResultsApiResponse = {
     class: {
@@ -121,6 +149,10 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
       statusCounts: sociometry.statusCounts,
       mutualPairs: sociometry.mutualPairs,
       edges: sociometry.directedEdges,
+    },
+    firo: {
+      respondentCount,
+      scaleAverages,
     },
   };
 

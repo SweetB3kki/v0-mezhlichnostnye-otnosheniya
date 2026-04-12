@@ -1,4 +1,10 @@
 import type { SocialStatus, SociometryEdge } from "@/lib/sociometry";
+import type { FiroDomainCode, FiroDomainProfile, FiroScale, FiroScaleProfile, FiroScoreLevel } from "@/lib/firo";
+
+export type FiroScaleCompactResult = {
+  score: number;
+  level: FiroScoreLevel;
+};
 
 export type ClassResultsStudent = {
   id: string;
@@ -14,6 +20,7 @@ export type ClassResultsStudent = {
   firoSum: number;
   firoAvg: number;
   firoCount: number;
+  firoScales: Record<FiroScale, FiroScaleCompactResult>;
 };
 
 export type ClassResultsApiResponse = {
@@ -31,6 +38,10 @@ export type ClassResultsApiResponse = {
     statusCounts: Record<SocialStatus, number>;
     mutualPairs: Array<[string, string]>;
     edges: SociometryEdge[];
+  };
+  firo: {
+    respondentCount: number;
+    scaleAverages: Record<FiroScale, number>;
   };
 };
 
@@ -64,5 +75,7 @@ export type StudentResultsApiResponse = {
     sum: number;
     avg: number;
     count: number;
+    scales: Record<FiroScale, FiroScaleProfile>;
+    domains: Record<FiroDomainCode, FiroDomainProfile>;
   };
 };
