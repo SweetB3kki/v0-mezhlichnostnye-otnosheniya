@@ -71,7 +71,7 @@ model QuestionBank {
   text     String
   meta     Json?
   isActive Boolean      @default(true)
-  
+
   @@index([kind])
   @@index([isActive])
 }
