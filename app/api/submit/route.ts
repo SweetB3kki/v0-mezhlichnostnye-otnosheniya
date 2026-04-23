@@ -17,6 +17,8 @@ type IncomingPayload = {
   responses: IncomingResponse[];
 };
 
+const SUBMIT_RETRY_DELAYS_MS = [120, 240, 480];
+
 function extractStartedAt(meta: unknown): string | null {
   if (!meta || typeof meta !== "object") return null;
   const startedAt = (meta as { startedAt?: unknown }).startedAt;
@@ -56,6 +58,44 @@ function normalizeResponse(response: IncomingResponse): {
   }
 
   throw new Error(`Invalid response kind for ${response.key}`);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableTransactionError(error: unknown): boolean {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2034"
+  ) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("write conflict") ||
+    message.includes("deadlock") ||
+    message.includes("Unable to start a transaction")
+  );
+}
+
+async function submitWithRetry<T>(operation: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= SUBMIT_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableTransactionError(error) || attempt === SUBMIT_RETRY_DELAYS_MS.length) {
+        throw error;
+      }
+      await sleep(SUBMIT_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+
+  throw lastError;
 }
 
 export async function POST(req: NextRequest) {
@@ -99,38 +139,43 @@ export async function POST(req: NextRequest) {
     const normalizedResponses = body.responses.map(normalizeResponse);
     const startedAt = extractStartedAt(body.meta);
 
-    const sessionId = await prisma.$transaction(
-      async (tx) => {
-        if (startedAt) {
-          const sameAttempt = await tx.testSession.findFirst({
-            where: {
-              studentId: body.studentId,
-              meta: {
-                path: ["startedAt"],
-                equals: startedAt,
-              },
-            },
-            orderBy: { submittedAt: "desc" },
-            select: { id: true },
-          });
-          if (sameAttempt) return sameAttempt.id;
-        }
+    if (startedAt) {
+      const sameAttempt = await prisma.testSession.findFirst({
+        where: {
+          studentId: body.studentId,
+          meta: {
+            path: ["startedAt"],
+            equals: startedAt,
+          },
+        },
+        orderBy: { submittedAt: "desc" },
+        select: { id: true },
+      });
+      if (sameAttempt) {
+        return NextResponse.json({ ok: true, sessionId: sameAttempt.id });
+      }
+    }
 
-        if (!isAdmin) {
-          const existingSubmission = await tx.testSession.findFirst({
-            where: { studentId: body.studentId },
-            select: { id: true },
-          });
-          if (existingSubmission) {
-            throw new Error("Test already submitted");
-          }
-        }
+    if (!isAdmin) {
+      const existingSubmission = await prisma.testSession.findFirst({
+        where: { studentId: body.studentId },
+        select: { id: true },
+      });
+      if (existingSubmission) {
+        return NextResponse.json({ error: "Test already submitted" }, { status: 409 });
+      }
+    }
 
+    const sessionId = await submitWithRetry(async () =>
+      prisma.$transaction(async (tx) => {
         const session = await tx.testSession.create({
           data: {
             studentId: body.studentId,
             classId: body.classId ?? student.classId ?? null,
-            meta: body.meta && typeof body.meta === "object" ? (body.meta as Prisma.InputJsonValue) : undefined,
+            meta:
+              body.meta && typeof body.meta === "object"
+                ? (body.meta as Prisma.InputJsonValue)
+                : undefined,
           },
           select: { id: true },
         });
@@ -147,8 +192,7 @@ export async function POST(req: NextRequest) {
         }
 
         return session.id;
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      }),
     );
 
     return NextResponse.json({ ok: true, sessionId });
