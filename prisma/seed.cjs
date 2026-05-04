@@ -1,11 +1,15 @@
-export const demoClasses = [
-  { id: "7a", name: "7А", teacher: "Иванова М.П.", studentCount: 20 },
-  { id: "7b", name: "7Б", teacher: "Петрова А.С.", studentCount: 22 },
-  { id: "8a", name: "8А", teacher: "Сидоров В.И.", studentCount: 18 },
-  { id: "8b", name: "8Б", teacher: "Козлова Е.Н.", studentCount: 21 },
-]
+const { PrismaClient } = require("@prisma/client");
 
-export const demoStudents: Record<string, Array<{ id: string; firstName: string; lastName: string }>> = {
+const prisma = new PrismaClient();
+
+const demoClasses = [
+  { id: "7a", name: "7А", teacher: "Иванова М.П." },
+  { id: "7b", name: "7Б", teacher: "Петрова А.С." },
+  { id: "8a", name: "8А", teacher: "Сидоров В.И." },
+  { id: "8b", name: "8Б", teacher: "Козлова Е.Н." },
+];
+
+const demoStudents = {
   "7a": [
     { id: "1", firstName: "Александр", lastName: "Иванов" },
     { id: "2", firstName: "Мария", lastName: "Петрова" },
@@ -95,17 +99,32 @@ export const demoStudents: Record<string, Array<{ id: string; firstName: string;
     { id: "80", firstName: "Татьяна", lastName: "Киселёва" },
     { id: "81", firstName: "Игорь", lastName: "Макаров" },
   ],
+};
+
+async function main() {
+  for (const c of demoClasses) {
+    await prisma.class.upsert({
+      where: { id: c.id },
+      update: { name: c.name, teacher: c.teacher || null },
+      create: { id: c.id, name: c.name, teacher: c.teacher || null },
+    });
+  }
+
+  for (const [classId, students] of Object.entries(demoStudents)) {
+    for (const s of students) {
+      await prisma.student.upsert({
+        where: { id: s.id },
+        update: { firstName: s.firstName, lastName: s.lastName, classId },
+        create: { id: s.id, firstName: s.firstName, lastName: s.lastName, classId },
+      });
+    }
+  }
 }
 
-export function getStudentsForClass(classId: string) {
-  return demoStudents[classId] || demoStudents["7a"]
-}
-
-export function getClassById(classId: string) {
-  return demoClasses.find((c) => c.id === classId)
-}
-
-export function getStudentById(classId: string, studentId: string) {
-  const students = getStudentsForClass(classId)
-  return students.find((s) => s.id === studentId)
-}
+main()
+  .then(() => prisma.$disconnect())
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
+  });

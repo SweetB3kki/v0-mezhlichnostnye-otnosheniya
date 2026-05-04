@@ -22,6 +22,29 @@ export const sociometryQuestions = [
 
 // FIRO/OMO questions - 54 questions total, 6 scales (Ie, Iw, Ce, Cw, Ae, Aw)
 // Scale: 1-6 (1 = никогда/редко, 6 = обычно/всегда)
+export type FiroScale = "Ie" | "Iw" | "Ce" | "Cw" | "Ae" | "Aw"
+
+export type QuestionOption = {
+  value: number
+  label: string
+}
+
+export type QuestionItem = {
+  key: string
+  number: number
+  text: string
+  scale: FiroScale
+}
+
+export type QuestionSection = {
+  id: string
+  title: string
+  description: string
+  helperText?: string
+  questions: QuestionItem[]
+  options: QuestionOption[]
+}
+
 export const firoQuestions = [
   // Inclusion expressed (Ie) - questions 1-9
   { id: "firo_1", text: "Я стараюсь быть вместе со всеми.", scale: "Ie", number: 1 },
@@ -226,4 +249,75 @@ export const firoAnswerOptions = [
   { value: 4, label: "4 - Часто" },
   { value: 5, label: "5 - Обычно" },
   { value: 6, label: "6 - Всегда" },
+]
+
+// FIRO grouped questionnaire structure based on the source OMO document.
+export const firoFrequencyOptionsV2: QuestionOption[] = [
+  { value: 1, label: "Обычно" },
+  { value: 2, label: "Часто" },
+  { value: 3, label: "Иногда" },
+  { value: 4, label: "По случаю" },
+  { value: 5, label: "Редко" },
+  { value: 6, label: "Никогда" },
+]
+
+export const firoPeopleCountOptionsV2: QuestionOption[] = [
+  { value: 1, label: "Большинству людей" },
+  { value: 2, label: "Многим" },
+  { value: 3, label: "Некоторым людям" },
+  { value: 4, label: "Нескольким людям" },
+  { value: 5, label: "Одному двум людям" },
+  { value: 6, label: "Никому" },
+]
+
+export const firoGeneralInstruction = {
+  title: "Общая инструкция к опроснику ОМО/FIRO",
+  description:
+    "В опроснике нет правильных и неправильных ответов. Похожие утверждения могут иметь разный смысл в разных блоках. Отвечайте на каждый пункт отдельно, учитывая инструкцию текущего блока.",
+}
+
+const firoQuestionItems: QuestionItem[] = firoQuestions.map((question) => ({
+  key: question.id,
+  number: question.number,
+  text: question.text,
+  scale: question.scale as FiroScale,
+}))
+
+function getFiroQuestionsInRange(start: number, end: number): QuestionItem[] {
+  return firoQuestionItems.filter((question) => question.number >= start && question.number <= end)
+}
+
+export const firoQuestionSections: QuestionSection[] = [
+  {
+    id: "firo-block-1",
+    title: "Блок 1: вопросы 1–16",
+    description:
+      "Для каждого утверждения выберите ответ, который больше всего вам подходит:\n(1) Обычно                    (4) По случаю\n(2) Часто                     (5) Редко\n(3) Иногда                    (6) Никогда",
+    questions: getFiroQuestionsInRange(1, 16),
+    options: firoFrequencyOptionsV2,
+  },
+  {
+    id: "firo-block-2",
+    title: "Блок 2: вопросы 17–27",
+    description:
+      "Для каждого из дальнейших утверждений выберите один из ответов,\nобозначающий количество людей, которые могут влиять на вас или на которых\nваше поведение может распространяться. Относится к:\n(1) Большинству людей         (4) Нескольким людям\n(2) Многим                    (5) Одному двум людям\n(3) Некоторым людям           (6) Никому",
+    questions: getFiroQuestionsInRange(17, 27),
+    options: firoPeopleCountOptionsV2,
+  },
+  {
+    id: "firo-block-3",
+    title: "Блок 3: вопросы 28–40",
+    description:
+      "Для каждого из дальнейших утверждений выберите один из ответов,\nобозначающий количество людей, которые могут влиять на вас, или на которых\nваше поведение распространяется.\n(1) Большинству людей         (4) Нескольким людям\n(2) Многим                    (5) Одному двум людям\n(3) Некоторым людям           (6) Никому",
+    questions: getFiroQuestionsInRange(28, 40),
+    options: firoPeopleCountOptionsV2,
+  },
+  {
+    id: "firo-block-4",
+    title: "Блок 4: вопросы 41–54",
+    description:
+      "Для каждого из дальнейших утверждений выберите один из следующих ответов.\n(1) Обычно                    (4) По случаю\n(2) Часто                     (5) Редко\n(3) Иногда                    (6) Никогда",
+    questions: getFiroQuestionsInRange(41, 54),
+    options: firoFrequencyOptionsV2,
+  },
 ]

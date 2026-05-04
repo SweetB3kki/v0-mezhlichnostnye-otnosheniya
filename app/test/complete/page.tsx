@@ -1,15 +1,15 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { AppShell } from "@/components/app-shell"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, User, ArrowLeft } from "lucide-react"
+import { CheckCircle, ArrowLeft } from "lucide-react"
 
 interface Props {
   searchParams: Promise<{ classId?: string; studentId?: string }>
 }
 
 export default async function TestCompletePage({ searchParams }: Props) {
-  const { classId, studentId } = await searchParams
+  const { classId } = await searchParams
 
   return (
     <AppShell>
@@ -27,15 +27,6 @@ export default async function TestCompletePage({ searchParams }: Props) {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              {studentId && (
-                <Link href={`/student/${studentId}/results`}>
-                  <Button className="gradient-btn text-[var(--ink)] rounded-xl w-full sm:w-auto">
-                    <User className="w-4 h-4 mr-2" />
-                    Мои результаты
-                  </Button>
-                </Link>
-              )}
-
               {classId && (
                 <Link href={`/class/${classId}`}>
                   <Button
@@ -54,3 +45,4 @@ export default async function TestCompletePage({ searchParams }: Props) {
     </AppShell>
   )
 }
+
