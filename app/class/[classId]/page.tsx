@@ -71,10 +71,7 @@ export default async function ClassPage({ params }: Props) {
           </Link>
 
           <div className="mb-8">
-            <PageTitle
-              title={`Класс ${cls.name}`}
-              subtitle={cls.teacher ? `Классный руководитель: ${cls.teacher}` : undefined}
-            />
+            <PageTitle title={cls.name} subtitle={cls.teacher ? `Классный руководитель: ${cls.teacher}` : undefined} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

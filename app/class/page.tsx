@@ -49,7 +49,7 @@ export default async function ClassListPage() {
                         <ChevronRight className="h-5 w-5 text-[var(--ink-secondary)] transition-colors group-hover:text-[var(--ink)]" />
                       </div>
 
-                      <h3 className="mb-1 font-semibold text-[var(--ink)]">Класс {classItem.name}</h3>
+                      <h3 className="mb-1 font-semibold text-[var(--ink)]">{classItem.name}</h3>
 
                       {classItem.teacher && (
                         <p className="mb-2 text-sm text-[var(--ink-secondary)]">{classItem.teacher}</p>

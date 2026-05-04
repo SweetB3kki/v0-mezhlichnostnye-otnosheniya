@@ -79,7 +79,7 @@ export default function ExportPage() {
                   <SelectItem value="all">Все классы</SelectItem>
                   {classes.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
-                      Класс {cls.name}
+                    {cls.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

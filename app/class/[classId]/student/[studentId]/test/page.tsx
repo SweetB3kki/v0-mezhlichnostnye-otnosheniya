@@ -227,7 +227,7 @@ export default function TestPage() {
                   <div className="w-8 h-8 rounded-lg bg-[var(--cloud-purple)]/20 flex items-center justify-center">
                     <Users className="w-4 h-4 text-[var(--ink)]" />
                   </div>
-                  <span className="text-sm text-[var(--ink)]">Класс {classData.name}</span>
+                  <span className="text-sm text-[var(--ink)]">{classData.name}</span>
                 </div>
 
                 <div className="flex items-center gap-2">

@@ -34,7 +34,7 @@ export default async function ResultsPage() {
                     <ChevronRight className="w-5 h-5 text-[var(--ink-secondary)] group-hover:text-[var(--ink)] transition-colors" />
                   </div>
 
-                  <h3 className="font-semibold text-[var(--ink)] mb-1">Класс {classItem.name}</h3>
+                <h3 className="font-semibold text-[var(--ink)] mb-1">{classItem.name}</h3>
 
                   <div className="flex items-center gap-1 text-xs text-[var(--ink-secondary)]">
                     <Users className="w-3 h-3" />
