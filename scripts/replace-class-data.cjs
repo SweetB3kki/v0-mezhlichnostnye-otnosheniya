@@ -4,7 +4,7 @@ const prisma = new PrismaClient()
 
 const TARGET_CLASS = {
   id: "7a",
-  name: "7А",
+  name: "04.05.26",
   teacher: null,
 }
 
